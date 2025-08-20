@@ -1,0 +1,1 @@
+# receipt-ocr-azure-sample
