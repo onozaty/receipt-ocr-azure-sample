@@ -6,7 +6,9 @@ import DocumentIntelligence, {
 import { AzureKeyCredential } from "@azure/core-auth";
 
 if (!process.env.AZURE_API_KEY || !process.env.AZURE_ENDPOINT) {
-  throw new Error("Azure API key and endpoint must be provided");
+  throw new Error(
+    "環境変数としてAZURE_API_KEYとAZURE_ENDPOINTを設定してください。",
+  );
 }
 
 const key = process.env.AZURE_API_KEY;
@@ -23,6 +25,8 @@ export const extractReceipt = async (file: File) => {
 
   const base64Data = await fileToBase64(file);
 
+  console.log("Azure Document Intelligence 解析開始を呼び出します。");
+
   const initialResponse = await client
     .path("/documentModels/{modelId}:analyze", "prebuilt-receipt")
     .post({
@@ -32,12 +36,16 @@ export const extractReceipt = async (file: File) => {
       },
     });
 
+  console.log("Azure Document Intelligence 解析開始の呼び出しが完了しました。");
+
   if (isUnexpected(initialResponse)) {
     throw initialResponse.body.error;
   }
 
   const poller = getLongRunningPoller(client, initialResponse);
   const result = await poller.pollUntilDone();
+
+  console.log("Azure Document Intelligence 解析処理が完了しました。");
 
   if (isUnexpected(result)) {
     throw result.body.error;
@@ -46,20 +54,16 @@ export const extractReceipt = async (file: File) => {
   const analyzeResult = (result.body as { analyzeResult: AnalyzeResultOutput })
     .analyzeResult;
 
-  const documents = analyzeResult?.documents;
-  const document = documents && documents[0];
+  // 1ドキュメント目の解析結果から各種情報を取得
+  const fields = analyzeResult?.documents?.[0]?.fields;
 
-  if (document?.fields) {
-    const merchantName = document.fields.MerchantName?.content;
-    const total = document.fields?.Total?.valueCurrency?.amount;
-    const transactionDate = document.fields?.TransactionDate?.valueDate;
+  const merchantName = fields?.MerchantName?.content;
+  const total = fields?.Total?.valueCurrency?.amount;
+  const transactionDate = fields?.TransactionDate?.valueDate;
 
-    return {
-      merchantName,
-      total,
-      transactionDate,
-    };
-  } else {
-    throw new Error("Expected at least one receipt in the result.");
-  }
+  return {
+    merchantName,
+    total,
+    transactionDate,
+  };
 };
