@@ -1,4 +1,4 @@
-import { Image, Upload, X, FileText, Loader2 } from "lucide-react";
+import { FileText, Image, Loader2, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
 import { Button } from "~/components/ui/button";
@@ -11,23 +11,8 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table";
+import { extractReceipt } from "~/services/ocr.server";
 import type { Route } from "./+types/home";
-
-interface ActionData {
-  success?: boolean;
-  error?: string;
-  result?: {
-    fileName: string;
-    fileSize: number;
-    fileId: string;
-    receipt?: {
-      amount: number;
-      date: string;
-      vendor: string;
-      description: string;
-    };
-  };
-}
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -50,15 +35,13 @@ export async function action({ request }: Route.ActionArgs) {
   try {
     console.log("ファイル処理中:", file.name, file.size, "ID:", fileId);
 
-    // TODO: AzureのAPI呼びだす
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const ocrResult = await extractReceipt(file);
 
-    // モック的な領収書解析結果
-    const mockReceipt = {
-      amount: 367500,
-      date: "2024-01-15",
-      vendor: "株式会社サンプル商事",
-      description: "システム開発費用",
+    // 領収書データの構造化
+    const receiptData = {
+      amount: ocrResult.total,
+      date: ocrResult.transactionDate,
+      vendor: ocrResult.merchantName,
     };
 
     return {
@@ -67,13 +50,13 @@ export async function action({ request }: Route.ActionArgs) {
         fileName: file.name,
         fileSize: file.size,
         fileId: fileId,
-        receipt: mockReceipt,
+        receipt: receiptData,
       },
     };
   } catch (error) {
     console.error("ファイル処理エラー:", error);
     return {
-      error: "ファイル処理中にエラーが発生しました",
+      error: `ファイル処理中にエラーが発生しました: ${error instanceof Error ? error.message : "不明なエラー"}`,
     };
   }
 }
@@ -95,7 +78,7 @@ export default function Home() {
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const actionData = useActionData<ActionData>();
+  const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submit = useSubmit();
   const isUploading = navigation.state === "submitting";
@@ -293,30 +276,28 @@ export default function Home() {
                         <Table>
                           <TableBody>
                             <TableRow>
-                              <TableCell className="font-medium">金額</TableCell>
+                              <TableCell className="font-medium">
+                                日付
+                              </TableCell>
                               <TableCell className="text-right">
-                                ¥{actionData.result.receipt.amount.toLocaleString()}
+                                {actionData.result.receipt.date ?? "-"}
                               </TableCell>
                             </TableRow>
-
                             <TableRow>
-                              <TableCell className="font-medium">日付</TableCell>
+                              <TableCell className="font-medium">
+                                金額
+                              </TableCell>
                               <TableCell className="text-right">
-                                {actionData.result.receipt.date}
+                                {actionData.result.receipt.amount?.toLocaleString() ??
+                                  "-"}
                               </TableCell>
                             </TableRow>
-
                             <TableRow>
-                              <TableCell className="font-medium">発行者</TableCell>
-                              <TableCell className="text-right">
-                                {actionData.result.receipt.vendor}
+                              <TableCell className="font-medium">
+                                発行者
                               </TableCell>
-                            </TableRow>
-
-                            <TableRow>
-                              <TableCell className="font-medium">内容</TableCell>
                               <TableCell className="text-right">
-                                {actionData.result.receipt.description}
+                                {actionData.result.receipt.vendor ?? "-"}
                               </TableCell>
                             </TableRow>
                           </TableBody>
