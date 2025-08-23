@@ -18,7 +18,5 @@
     }
   },
   "postCreateCommand": "pnpm install && pnpm typegen",
-  "features": {
-    "ghcr.io/anthropics/devcontainer-features/claude-code:latest": {}
-  }
+  "features": {}
 }
