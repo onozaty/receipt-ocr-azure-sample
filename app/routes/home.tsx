@@ -221,7 +221,7 @@ function FileUploadCard({
                 <Button
                   type="button"
                   onClick={onManualSelect}
-                  className="w-full min-h-[44px] text-base"
+                  className="w-full min-h-[44px]"
                   size="lg"
                 >
                   <Camera className="h-5 w-5 mr-2" />
@@ -281,7 +281,7 @@ function FileProcessingCard({
   return (
     <Card>
       <CardContent className="space-y-4">
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* 左側：画像とファイル情報 */}
           <div className="space-y-4 relative">
             <div className="flex items-center gap-2">
@@ -319,12 +319,12 @@ function FileProcessingCard({
               <div className="flex items-center justify-center py-12">
                 <div className="flex items-center gap-2 text-blue-600">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-base">解析中...</span>
+                  <span>解析中...</span>
                 </div>
               </div>
             ) : error && !isUploading && isCurrentFileUploaded ? (
               <div className="flex items-center justify-center py-12">
-                <p className="text-base text-red-600 text-center">{error}</p>
+                <p className="text-red-600 text-center">{error}</p>
               </div>
             ) : (
               isCurrentFileUploaded &&
