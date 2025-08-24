@@ -1,10 +1,10 @@
-import { FileText, Image, Loader2, Upload } from "lucide-react";
+import { Camera, FileText, Image, Loader2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table";
+import { useDeviceDetection } from "~/hooks/useDeviceDetection";
 import { extractReceipt } from "~/services/ocr.server";
 import type { Route } from "./+types/home";
 
@@ -64,6 +64,7 @@ export default function Home() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submit = useSubmit();
+  const { isMobile } = useDeviceDetection();
   const isUploading = navigation.state === "submitting";
 
   // 現在選択されているファイルがアップロード完了したファイルと同じかチェック
@@ -115,11 +116,11 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">領収書 OCR</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">領収書 OCR</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             領収書画像をアップロードして解析します。
           </p>
         </div>
@@ -130,6 +131,7 @@ export default function Home() {
             type="file"
             name="image"
             accept="image/*"
+            capture={isMobile ? "environment" : undefined}
             onChange={handleFileInputChange}
             className="hidden"
           />
@@ -149,6 +151,7 @@ export default function Home() {
             <FileUploadCard
               onFileSelect={handleFileSelect}
               onManualSelect={() => fileInputRef.current?.click()}
+              isMobile={isMobile}
             />
           )}
         </Form>
@@ -160,9 +163,14 @@ export default function Home() {
 interface FileUploadCardProps {
   onFileSelect: (file: File) => void;
   onManualSelect: () => void;
+  isMobile: boolean;
 }
 
-function FileUploadCard({ onFileSelect, onManualSelect }: FileUploadCardProps) {
+function FileUploadCard({
+  onFileSelect,
+  onManualSelect,
+  isMobile,
+}: FileUploadCardProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -198,16 +206,51 @@ function FileUploadCard({ onFileSelect, onManualSelect }: FileUploadCardProps) {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-lg font-medium mb-2">画像をドラッグ＆ドロップ</p>
-          <p className="text-muted-foreground mb-4">または下のボタンから選択</p>
-          <Button
-            type="button"
-            onClick={onManualSelect}
-            className="w-full max-w-xs"
-          >
-            ファイルを選択
-          </Button>
+          <Upload className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-4 text-muted-foreground" />
+
+          {isMobile ? (
+            <>
+              <p className="text-lg font-medium mb-2">
+                写真を撮影またはアップロード
+              </p>
+              <p className="text-sm text-muted-foreground mb-6">
+                領収書の写真を撮影するか、ギャラリーから選択してください
+              </p>
+
+              <div className="space-y-3">
+                <Button
+                  type="button"
+                  onClick={onManualSelect}
+                  className="w-full min-h-[44px] text-base"
+                  size="lg"
+                >
+                  <Camera className="h-5 w-5 mr-2" />
+                  カメラで撮影
+                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  タップするとカメラまたはギャラリーが開きます
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium mb-2">
+                画像をドラッグ＆ドロップ
+              </p>
+              <p className="text-muted-foreground mb-4">
+                または下のボタンから選択
+              </p>
+              <Button
+                type="button"
+                onClick={onManualSelect}
+                className="w-full max-w-xs"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                ファイルを選択
+              </Button>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -286,29 +329,29 @@ function FileProcessingCard({
             ) : (
               isCurrentFileUploaded &&
               result && (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-                  <Table>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">日付</TableCell>
-                        <TableCell className="text-right">
-                          {result.transactionDate ?? "-"}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">金額</TableCell>
-                        <TableCell className="text-right">
-                          {result.total?.toLocaleString() ?? "-"}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">発行者</TableCell>
-                        <TableCell className="text-right">
-                          {result.merchantName ?? "-"}
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg shadow-sm p-4 space-y-4">
+                  <div>
+                    <div className="font-medium text-muted-foreground mb-1">
+                      日付
+                    </div>
+                    <div>{result.transactionDate ?? "-"}</div>
+                  </div>
+
+                  <div>
+                    <div className="font-medium text-muted-foreground mb-1">
+                      金額
+                    </div>
+                    <div>{result.total?.toLocaleString() ?? "-"}</div>
+                  </div>
+
+                  <div>
+                    <div className="font-medium text-muted-foreground mb-1">
+                      発行者
+                    </div>
+                    <div className="break-words">
+                      {result.merchantName ?? "-"}
+                    </div>
+                  </div>
                 </div>
               )
             )}
