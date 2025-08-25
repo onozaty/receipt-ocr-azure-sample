@@ -115,6 +115,22 @@ export default function Home() {
     setCurrentFileId(null);
   };
 
+  const handleCameraSelect = () => {
+    if (fileInputRef.current) {
+      // カメラに切り替え
+      fileInputRef.current.setAttribute("capture", "environment");
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleGallerySelect = () => {
+    if (fileInputRef.current) {
+      // ファイル選択に切り替え
+      fileInputRef.current.removeAttribute("capture");
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -131,7 +147,6 @@ export default function Home() {
             type="file"
             name="image"
             accept="image/*"
-            capture={isMobile ? "environment" : undefined}
             onChange={handleFileInputChange}
             className="hidden"
           />
@@ -151,6 +166,8 @@ export default function Home() {
             <FileUploadCard
               onFileSelect={handleFileSelect}
               onManualSelect={() => fileInputRef.current?.click()}
+              onCameraSelect={handleCameraSelect}
+              onGallerySelect={handleGallerySelect}
               isMobile={isMobile}
             />
           )}
@@ -163,12 +180,16 @@ export default function Home() {
 interface FileUploadCardProps {
   onFileSelect: (file: File) => void;
   onManualSelect: () => void;
+  onCameraSelect: () => void;
+  onGallerySelect: () => void;
   isMobile: boolean;
 }
 
 function FileUploadCard({
   onFileSelect,
   onManualSelect,
+  onCameraSelect,
+  onGallerySelect,
   isMobile,
 }: FileUploadCardProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -220,7 +241,7 @@ function FileUploadCard({
               <div className="space-y-3">
                 <Button
                   type="button"
-                  onClick={onManualSelect}
+                  onClick={onCameraSelect}
                   className="w-full min-h-[44px]"
                   size="lg"
                 >
@@ -228,9 +249,16 @@ function FileUploadCard({
                   カメラで撮影
                 </Button>
 
-                <p className="text-xs text-muted-foreground">
-                  タップするとカメラまたはギャラリーが開きます
-                </p>
+                <Button
+                  type="button"
+                  onClick={onGallerySelect}
+                  className="w-full min-h-[44px]"
+                  size="lg"
+                  variant="outline"
+                >
+                  <Image className="h-5 w-5 mr-2" />
+                  ギャラリーから選択
+                </Button>
               </div>
             </>
           ) : (
