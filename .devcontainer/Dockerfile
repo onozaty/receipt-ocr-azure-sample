@@ -23,3 +23,5 @@ ENV PATH=$PATH:/usr/local/share/npm-global/bin
 
 # Install Claude
 RUN npm install -g @anthropic-ai/claude-code
+
+USER root
