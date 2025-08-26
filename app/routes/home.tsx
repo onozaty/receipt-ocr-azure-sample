@@ -4,14 +4,20 @@ import { Form, useActionData, useNavigation, useSubmit } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { useDeviceDetection } from "~/hooks/useDeviceDetection";
-import { extractReceipt } from "~/services/ocr.server";
+import {
+  extractReceiptUseDocumentIntelligence,
+  extractReceiptUseOpenAI,
+} from "~/services/ocr.server";
 import type { Route } from "./+types/home";
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const file = formData.get("image") as File;
   const fileId = formData.get("fileId") as string;
+  const ocrService = formData.get("ocrService") as string;
 
   if (!file || file.size === 0) {
     return {
@@ -29,7 +35,14 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    const ocrResult = await extractReceipt(file);
+    let ocrResult;
+
+    if (ocrService === "openai") {
+      ocrResult = await extractReceiptUseOpenAI(file);
+    } else {
+      // デフォルトはDocument Intelligence
+      ocrResult = await extractReceiptUseDocumentIntelligence(file);
+    }
 
     return {
       success: true,
@@ -142,6 +155,24 @@ export default function Home() {
         </div>
 
         <Form ref={formRef} method="post" encType="multipart/form-data">
+          {/* OCRサービス選択 */}
+          <div className="flex items-center justify-center gap-6 mb-6">
+            <span className="font-medium">OCR:</span>
+            <RadioGroup
+              defaultValue="di"
+              name="ocrService"
+              className="flex flex-row gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="di" id="di" />
+                <Label htmlFor="di">Document Intelligence</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="openai" id="openai" />
+                <Label htmlFor="openai">OpenAI</Label>
+              </div>
+            </RadioGroup>
+          </div>
           <Input
             ref={fileInputRef}
             type="file"
@@ -344,14 +375,14 @@ function FileProcessingCard({
             </div>
 
             {isUploading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-4">
                 <div className="flex items-center gap-2 text-blue-600">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>解析中...</span>
                 </div>
               </div>
             ) : error && !isUploading && isCurrentFileUploaded ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-4">
                 <p className="text-red-600 text-center">{error}</p>
               </div>
             ) : (
