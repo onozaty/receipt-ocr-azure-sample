@@ -1,5 +1,5 @@
 import { Camera, FileText, Image, Loader2, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, useActionData, useNavigation, useSubmit } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -337,6 +337,28 @@ function FileProcessingCard({
   isCurrentFileUploaded,
   onClear,
 }: FileProcessingCardProps) {
+  const analysisRef = useRef<HTMLDivElement>(null);
+
+  // 処理開始時に解析結果部分まで自動スクロール
+  useEffect(() => {
+    if (isUploading && analysisRef.current) {
+      analysisRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }, [isUploading]);
+
+  // 解析結果が表示された時にも自動スクロール
+  useEffect(() => {
+    if (!isUploading && isCurrentFileUploaded && (result || error) && analysisRef.current) {
+      analysisRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }, [isUploading, isCurrentFileUploaded, result, error]);
+
   return (
     <Card>
       <CardContent className="space-y-4">
@@ -368,7 +390,7 @@ function FileProcessingCard({
           </div>
 
           {/* 右側：解析結果 */}
-          <div className="space-y-4">
+          <div ref={analysisRef} className="space-y-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">解析結果</h3>
